@@ -133,3 +133,9 @@ MIT
 ---
 
 Criado por [@josezipf](https://github.com/josezipf)
+
+## 🌐 Mais conteúdos
+
+Acesse outros materiais sobre monitoramento e infraestrutura em:
+
+🔗 [https://nototi.com.br](https://nototi.com.br)
