@@ -1,6 +1,9 @@
 # Ansible Role: ansible-role-zabbix7-mysql-ubuntu2404
 
-Role para instalação e configuração do **MySQL** no **Ubuntu 24.04** com foco na preparação do ambiente para o **Zabbix 7**. Inclui a definição da senha do usuário `root` com plugin `mysql_native_password` para garantir compatibilidade com o frontend do Zabbix.
+Role para instalação e configuração do **MySQL** no **Ubuntu 24.04**, com foco na preparação do ambiente para o **Zabbix 7**.  
+Inclui a definição da senha do usuário `root` com plugin `mysql_native_password` para garantir compatibilidade com o frontend do Zabbix.
+
+[![Ansible Galaxy](https://img.shields.io/badge/Ansible--Galaxy-zabbix7--mysql--ubuntu2404-blue.svg)](https://galaxy.ansible.com/josezipf/zabbix7-mysql-ubuntu2404)
 
 ---
 
@@ -9,25 +12,28 @@ Role para instalação e configuração do **MySQL** no **Ubuntu 24.04** com foc
 **ATENÇÃO:** Esta role **define uma senha para o usuário root** do MySQL.  
 Ela deve ser usada **somente em instalações novas e limpas** do MySQL, onde ainda **não existe nenhuma configuração ou banco de dados criado**.
 
-Caso rode essa role em um ambiente com MySQL já configurado, **pode sobrescrever senhas existentes e causar perda de acesso.**
+Se você executar esta role em um ambiente com MySQL previamente configurado, poderá **sobrescrever senhas existentes e perder o acesso** ao banco.
 
 ---
 
-## Requisitos
+## ✅ Requisitos
 
-- Sistema operacional: Ubuntu 24.04
-- Ansible 2.12+
-- Python 3
-- Role `community.mysql` instalada (instalar via `ansible-galaxy collection install community.mysql`)
-- Instância com MySQL ainda não configurado (fresh install)
+- Sistema operacional: **Ubuntu 24.04**
+- Ansible **2.12+**
+- Python 3 instalado no host alvo
+- Coleção **community.mysql** instalada:
+  
+```bash
+ansible-galaxy collection install community.mysql
+```
 
 ---
 
-## Variáveis
+## 📦 Variáveis
 
-Estas variáveis estão definidas no arquivo:
+Estas variáveis estão definidas em:
 
-```yaml
+```text
 defaults/main.yml
 ```
 
@@ -42,11 +48,11 @@ mysql_database: "zabbix"
 zabbix_repo_url: "https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0%2Bubuntu24.04_all.deb"
 ```
 
-Você pode sobrescrever esses valores ao utilizar a role em seu playbook.
+Você pode sobrescrevê-las diretamente no seu playbook.
 
 ---
 
-## Exemplo de uso
+## ▶️ Exemplo de Uso
 
 ```yaml
 - name: Instalação do MySQL para o Zabbix 7
@@ -58,39 +64,51 @@ Você pode sobrescrever esses valores ao utilizar a role em seu playbook.
     mysql_zabbix_password: 'SenhaZabbix'
     mysql_database: 'zabbix'
   roles:
-    - ansible-role-zabbix7-mysql-ubuntu2404
+    - josezipf.zabbix7-mysql-ubuntu2404
 ```
 
 ---
 
-## Estrutura da Role
+## 🧱 O que esta role faz
 
-- Instala pacotes necessários
-- Garante que o MySQL está presente
-- Configura o MySQL para usar `mysql_native_password`
-- Define senha do usuário `root` com idempotência
-- Cria banco de dados e usuário do Zabbix
-- Verifica se o sistema é Ubuntu 24.04 (senão, aborta)
-
----
-
-## Compatibilidade
-
-- ✅ Ubuntu 24.04
-- ❌ Não testado em outras versões
+- Verifica se o sistema é Ubuntu 24.04 (e **aborta** caso não seja)
+- Instala pacotes necessários (MySQL, dependências)
+- Instala o repositório oficial do Zabbix 7
+- Instala e configura o MySQL 8
+- Define o plugin de autenticação para `mysql_native_password`
+- Define a senha do usuário `root` com **idempotência**
+- Cria o banco de dados `zabbix` e o usuário com permissões adequadas
+- Tudo com foco em deixar pronto para a instalação do Zabbix Server
 
 ---
 
-## Publicação no Galaxy
+## 📁 Estrutura da Role
 
-Este repositório segue a estrutura oficial de roles para publicação no Ansible Galaxy.  
-Nome sugerido no Galaxy:
-
+```text
+ansible-role-zabbix7-mysql-ubuntu2404/
+├── defaults/
+│   └── main.yml
+├── tasks/
+│   ├── check_os.yml
+│   ├── install_mysql.yml
+│   ├── configure_mysql.yml
+│   └── main.yml
+├── meta/
+│   └── main.yml
+├── README.md
 ```
-josezipf.zabbix7_mysql_ubuntu2404
+
+---
+
+## 🔗 Publicação no Ansible Galaxy
+
+Esta role está publicada e pode ser instalada diretamente com:
+
+```bash
+ansible-galaxy install josezipf.zabbix7-mysql-ubuntu2404
 ```
 
-Para sincronizar:
+Ou sincronizada com:
 
 ```bash
 ansible-galaxy login
@@ -99,17 +117,19 @@ ansible-galaxy import josezipf ansible-role-zabbix7-mysql-ubuntu2404
 
 ---
 
-[![Ansible Galaxy](https://img.shields.io/badge/Ansible--Galaxy-zabbix7--mysql--ubuntu2404-blue.svg)](https://galaxy.ansible.com/josezipf/zabbix7-mysql-ubuntu2404)
+## ✅ Compatibilidade
 
+| Sistema Operacional | Status     |
+|---------------------|------------|
+| Ubuntu 24.04        | ✅ Suportado |
+| Outras versões      | ❌ Não testado |
 
-## License
+---
+
+## 📜 Licença
 
 MIT
 
 ---
 
-
-
-## Autor
-
-- José Zipf – [nototi.com.br](https://nototi.com.br)
+Criado por [@josezipf](https://github.com/josezipf)
