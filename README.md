@@ -25,9 +25,24 @@ Caso rode essa role em um ambiente com MySQL já configurado, **pode sobrescreve
 
 ## Variáveis
 
-| Variável              | Descrição                            | Obrigatório |
-|----------------------|----------------------------------------|-------------|
-| `mysql_root_password`| Senha a ser definida para o usuário root | Sim        |
+Estas variáveis estão definidas no arquivo:
+
+```yaml
+defaults/main.yml
+```
+
+```yaml
+# defaults file for install_mysql_zabbix
+
+mysql_root_password: "SenhaForte123"
+mysql_zabbix_user: "zabbix"
+mysql_zabbix_password: "SenhaZabbix123"
+mysql_database: "zabbix"
+
+zabbix_repo_url: "https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.0%2Bubuntu24.04_all.deb"
+```
+
+Você pode sobrescrever esses valores ao utilizar a role em seu playbook.
 
 ---
 
@@ -39,6 +54,9 @@ Caso rode essa role em um ambiente com MySQL já configurado, **pode sobrescreve
   become: true
   vars:
     mysql_root_password: 'SenhaForteAqui'
+    mysql_zabbix_user: 'zabbix'
+    mysql_zabbix_password: 'SenhaZabbix'
+    mysql_database: 'zabbix'
   roles:
     - ansible-role-zabbix7-mysql-ubuntu2404
 ```
@@ -51,6 +69,7 @@ Caso rode essa role em um ambiente com MySQL já configurado, **pode sobrescreve
 - Garante que o MySQL está presente
 - Configura o MySQL para usar `mysql_native_password`
 - Define senha do usuário `root` com idempotência
+- Cria banco de dados e usuário do Zabbix
 - Verifica se o sistema é Ubuntu 24.04 (senão, aborta)
 
 ---
