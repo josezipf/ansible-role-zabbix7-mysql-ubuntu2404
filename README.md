@@ -99,11 +99,16 @@ ansible-galaxy import josezipf ansible-role-zabbix7-mysql-ubuntu2404
 
 ---
 
+[![Ansible Galaxy](https://img.shields.io/badge/Ansible--Galaxy-zabbix7--mysql--ubuntu2404-blue.svg)](https://galaxy.ansible.com/josezipf/zabbix7-mysql-ubuntu2404)
+
+
 ## License
 
 MIT
 
 ---
+
+
 
 ## Autor
 
