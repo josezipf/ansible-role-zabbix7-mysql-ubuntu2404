@@ -1,0 +1,6 @@
+# install_mysql_zabbix/tests/test.yml
+
+- name: Teste da role install_mysql_zabbix
+  hosts: localhost
+  roles:
+    - role: install_mysql_zabbix

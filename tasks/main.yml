@@ -1,0 +1,155 @@
+---
+# Tarefa 0: Verifica se o sistema operacional é Ubuntu 24.04
+- name: Verificar se o sistema é Ubuntu 24.04
+  ansible.builtin.fail:
+    msg: "Este playbook só pode ser executado no Ubuntu 24.04."
+  when: not (ansible_distribution == "Ubuntu" and ansible_distribution_version is version('24.04', '=='))
+
+# Tarefa 1: Instala o repositório oficial do Zabbix para Ubuntu 24.04
+- name: Instalar repositório do Zabbix
+  ansible.builtin.apt:
+    deb: "{{ zabbix_repo_url }}"
+    state: present
+  become: true
+
+# Tarefa 2: Atualiza o cache de pacotes APT
+- name: Atualizar cache dos pacotes
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600  # Cache válido por 1 hora
+  become: true
+
+# Tarefa 3: Instala os pacotes necessários para o Zabbix e MySQL
+- name: Instalar pacotes necessários
+  ansible.builtin.apt:
+    name:
+      - zabbix-sql-scripts         # Contém os scripts SQL para criação do schema do Zabbix
+      - python3-pymysql            # Permite conexão com MySQL via Ansible
+    state: present
+  become: true
+
+# Tarefa 4: Instala o servidor MySQL 8
+- name: Instalar MySQL 8
+  ansible.builtin.apt:
+    name: mysql-server
+    state: present
+  become: true
+
+# Tarefa 5: Habilita e inicia o serviço do MySQL
+- name: Habilitar e iniciar o serviço MySQL
+  ansible.builtin.systemd:
+    name: mysql
+    enabled: true
+    state: started
+  become: true
+
+# Tarefa 6: Tenta descobrir o plugin de autenticação atual do usuário root
+- name: Tentar descobrir plugin atual do root (pode falhar se já trocou para mysql_native_password)
+  ansible.builtin.command: >
+    mysql -N -B -S /run/mysqld/mysqld.sock -e
+    "SELECT plugin FROM mysql.user WHERE user='root' AND host='localhost';"
+  register: mysql_root_plugin_check  # Armazena a saída da verificação
+  changed_when: false  # Garante que essa tarefa nunca marque como "changed"
+  failed_when: false   # Evita falhar caso não consiga executar (ex: senha já exigida)
+  become: true
+
+# Tarefa 7: Troca o plugin de autenticação para mysql_native_password e define a senha, apenas se o plugin atual for auth_socket
+- name: Trocar plugin e definir senha (só se ainda for auth_socket)
+  community.mysql.mysql_user:
+    name: root
+    host: localhost
+    password: "{{ mysql_root_password }}"  # Define nova senha
+    plugin: mysql_native_password          # Troca plugin de autenticação
+    state: present
+    login_unix_socket: /run/mysqld/mysqld.sock  # Autentica via socket (funciona enquanto for auth_socket)
+  when: "'auth_socket' in mysql_root_plugin_check.stdout"
+  become: true
+  no_log: true  # Oculta senha no output
+
+# Tarefa 8: Garante senha e permissões do root, autenticando com senha se plugin já for mysql_native_password
+- name: Garantir permissões e senha usando login com senha (se já usa mysql_native_password)
+  community.mysql.mysql_user:
+    name: root
+    host: localhost
+    password: "{{ mysql_root_password }}"
+    plugin: mysql_native_password
+    priv: "*.*:ALL,GRANT"  # Garante privilégios administrativos
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  when: "'mysql_native_password' in mysql_root_plugin_check.stdout or mysql_root_plugin_check.rc != 0"
+  become: true
+  no_log: true
+
+# Tarefa 9: Cria o banco de dados que será utilizado pelo Zabbix
+- name: Criar banco de dados do Zabbix
+  community.mysql.mysql_db:
+    name: "{{ mysql_database }}"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+  become: true
+
+# Tarefa 10: Cria o usuário 'zabbix' no MySQL com permissões sobre o banco do Zabbix
+- name: Criar usuário MySQL para o Zabbix
+  community.mysql.mysql_user:
+    name: "{{ mysql_zabbix_user }}"
+    password: "{{ mysql_zabbix_password }}"
+    priv: "{{ mysql_database }}.*:ALL"  # Permissões completas apenas no banco do Zabbix
+    host: "localhost"
+    state: present
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    column_case_sensitive: false
+  become: true
+  no_log: true
+
+# Tarefa 11: Verifica se o diretório físico do banco de dados já foi criado
+- name: Verificar se diretório do banco existe
+  ansible.builtin.stat:
+    path: "/var/lib/mysql/{{ mysql_database }}"
+  register: zabbix_db_dir
+
+# Tarefa 12: Verifica se a tabela 'users.ibd' já existe no banco
+# Isso ajuda a evitar importação duplicada do schema
+- name: Verificar se a tabela 'users.ibd' existe
+  ansible.builtin.stat:
+    path: "/var/lib/mysql/{{ mysql_database }}/users.ibd"
+  register: zabbix_users_table
+
+# Tarefa 13: Define uma variável booleana para indicar se o banco já foi importado
+- name: Definir se banco do Zabbix já foi importado
+  ansible.builtin.set_fact:
+    zabbix_already_imported: "{{ zabbix_db_dir.stat.exists and zabbix_users_table.stat.exists }}"
+
+# Tarefa 14: Habilita a criação de funções armazenadas com logs binários
+# Requisito para importar corretamente o schema do Zabbix
+- name: Habilitar log_bin_trust_function_creators (se necessário)
+  community.mysql.mysql_variables:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    variable: "log_bin_trust_function_creators"
+    value: "ON"
+  when: not zabbix_already_imported
+  become: true
+
+# Tarefa 15: Importa o schema do banco de dados do Zabbix usando o script oficial
+- name: Importar banco de dados do Zabbix (se necessário)
+  ansible.builtin.shell: >
+    mysql -u {{ mysql_zabbix_user }} -p{{ mysql_zabbix_password }} {{ mysql_database }} < <(zcat /usr/share/zabbix-sql-scripts/mysql/server.sql.gz)
+  args:
+    executable: /bin/bash
+  when: not zabbix_already_imported
+  changed_when: false  # Não marca como "mudado" para manter idempotência
+  no_log: true
+  become: true
+
+# Tarefa 16: Restaura o valor padrão da variável log_bin_trust_function_creators
+- name: Restaurar log_bin_trust_function_creators
+  community.mysql.mysql_variables:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    variable: "log_bin_trust_function_creators"
+    value: "OFF"
+  when: not zabbix_already_imported
+  become: true
