@@ -88,10 +88,7 @@ Você pode sobrescrevê-las diretamente no seu playbook.
 ansible-role-zabbix7-mysql-ubuntu2404/
 ├── defaults/
 │   └── main.yml
-├── tasks/
-│   ├── check_os.yml
-│   ├── install_mysql.yml
-│   ├── configure_mysql.yml
+├── tasks/│   
 │   └── main.yml
 ├── meta/
 │   └── main.yml
