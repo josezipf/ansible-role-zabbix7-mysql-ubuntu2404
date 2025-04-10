@@ -16,7 +16,7 @@
 - name: Atualizar cache dos pacotes
   ansible.builtin.apt:
     update_cache: true
-    cache_valid_time: 3600  # Cache válido por 1 hora
+    cache_valid_time: 0  # Cache forçar update
   become: true
 
 # Tarefa 3: Instala os pacotes necessários para o Zabbix e MySQL
