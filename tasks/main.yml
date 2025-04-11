@@ -86,7 +86,7 @@
   community.mysql.mysql_db:
     name: "{{ mysql_database }}"
     state: present
-    character_set: utf8mb4
+    encoding: utf8mb4
     collation: utf8mb4_bin
     login_user: root
     login_password: "{{ mysql_root_password }}"
